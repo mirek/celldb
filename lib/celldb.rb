@@ -11,7 +11,7 @@ class CellDB
     # Returns an array of levels for specified number, in other words offsets of bits == 1
     # Please note the array is returned in descending order to support "natural" slicing, see slice method.
     def levels_for(n)
-      n.to_i.to_s(2).split('').reverse.each_with_index.reject { |bit, i| bit == '0' }.map { |bit, i| i }.reverse
+      64.times.select { |i| (n >> i) & 1 == 1 }.reverse
     end
     
     def slice_with_block(data)
@@ -58,6 +58,11 @@ class CellDB
     @levels = @level_range.map { |i| Vector.new(:level => i, :root => "#{@root}") }
     @key_paths = @level_range.map { |i| CellDB::Vector::File.touch(sprintf("#{@root}/%02d.kdb", i)) }
     @key_files = @key_paths.map { |key_path| open(key_path, 'r+') }
+    @keys = []
+    @key_paths.each do |key_path|
+      seek_key_at(0)
+      @keys << key while key = read_key(n)
+    end
   end
   
   def close
@@ -85,6 +90,17 @@ class CellDB
       @levels[level].read(digests[i]) || raise
     end.join
   end
+
+  # def [](k)
+  #   @kv[CellDB::keyize(k)]
+  # end
+  # 
+  # def []=(k, v)
+  #   kp = CellDB::pack_key(CellDB::keyize(k))
+  #   unless @kv.has_key?(kp)
+  #     
+  #   end
+  # end
   
   def key_size(n)
     8 + 24 * n
